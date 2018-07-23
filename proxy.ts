@@ -5,6 +5,7 @@ export default class LProxy {
   private requestId = 0;
 
   constructor(
+    private options = { port: 7269 },
     private beforeSendRequest = async (id: string, req: IncomingMessage) => req,
     private beforeSendResponse = async (id: string, res: IncomingMessage) => res
   ) {
@@ -12,6 +13,8 @@ export default class LProxy {
   }
 
   public start() {
+    const ip = '0.0.0.0';
+    const port = this.options.port;
     http
     .createServer()
     .on('request', async (req: IncomingMessage, res: ServerResponse) => {
@@ -36,7 +39,9 @@ export default class LProxy {
       req = await this.beforeSendRequest(requestId, req);
       req.pipe(proxyReq);
     })
-    .listen(7269, '0.0.0.0');
+    .listen(port, ip);
+    // tslint:disable-next-line:no-console
+    console.log(`proxy server listening at ${ip}:${port}`);
   }
 
   private getRequestId() {

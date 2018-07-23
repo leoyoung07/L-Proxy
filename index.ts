@@ -12,5 +12,5 @@ const beforeSendResponse = async (requestId: string, res: IncomingMessage) => {
   return res;
 };
 
-const proxy = new LProxy(beforeSendRequest, beforeSendResponse);
+const proxy = new LProxy({ port: 7269 }, beforeSendRequest, beforeSendResponse);
 proxy.start();
