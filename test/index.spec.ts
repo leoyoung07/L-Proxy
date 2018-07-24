@@ -1,5 +1,5 @@
 import { IncomingMessage } from 'http';
-import LProxy from './proxy';
+import LProxy from '../proxy';
 
 const beforeSendRequest = async (requestId: string, req: IncomingMessage) => {
   // tslint:disable-next-line:no-console
@@ -12,5 +12,10 @@ const beforeSendResponse = async (requestId: string, res: IncomingMessage) => {
   return res;
 };
 
-const proxy = new LProxy({ port: 7269 }, beforeSendRequest, beforeSendResponse);
+const proxy = new LProxy({ ip: '0.0.0.0', port: 7269 }, beforeSendRequest, beforeSendResponse);
+proxy.on('ready', (state: {ip: string, port: number}) => {
+  const {ip, port} = state;
+  // tslint:disable-next-line:no-console
+  console.log(`proxy server is listening at ${ip}:${port}`);
+});
 proxy.start();
