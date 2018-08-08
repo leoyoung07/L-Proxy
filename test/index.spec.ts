@@ -1,6 +1,11 @@
 import { IncomingMessage } from 'http';
 import LProxy from '../proxy';
 
+interface IEndPoint {
+  ip: string;
+  port: number;
+}
+
 const beforeSendRequest = async (requestId: string, req: IncomingMessage) => {
   // tslint:disable-next-line:no-console
   console.log('........req:' + requestId + '\n' + JSON.stringify(req.headers));
@@ -17,7 +22,7 @@ const proxy = new LProxy(
   beforeSendRequest,
   beforeSendResponse
 );
-proxy.on('ready', (state: { ip: string; port: number }) => {
+proxy.on('ready', (state: IEndPoint) => {
   const { ip, port } = state;
   // tslint:disable-next-line:no-console
   console.log(`proxy server is listening at ${ip}:${port}`);
