@@ -6,7 +6,20 @@ import http, {
   ServerResponse
 } from 'http';
 import url from 'url';
-export default class LProxy extends EventEmitter {
+
+// tslint:disable-next-line:interface-name
+declare interface LProxy {
+  on(event: 'ready', listener: (state: IEndPoint) => void): this;
+  on(event: 'error', listener: (error: Error) => void): this;
+  on(event: 'close', listener: () => void): this;
+}
+
+interface IEndPoint {
+  ip: string;
+  port: number;
+}
+
+class LProxy extends EventEmitter {
   private requestId = 0;
 
   private server: Server | null = null;
@@ -31,7 +44,7 @@ export default class LProxy extends EventEmitter {
         .on('listening', () => {
           this.emit('ready', { ip, port });
         })
-        .on('request', this.requestHandler)
+        .on('request', this.requestHandler.bind(this))
         .on('error', (err) => {
           this.emit('error', err);
         })
@@ -78,3 +91,5 @@ export default class LProxy extends EventEmitter {
     return (this.requestId++).toString();
   }
 }
+
+export default LProxy;
