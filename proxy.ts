@@ -5,6 +5,7 @@ import http, {
   Server,
   ServerResponse
 } from 'http';
+import net from 'net';
 import url from 'url';
 
 // tslint:disable-next-line:interface-name
@@ -45,6 +46,7 @@ class LProxy extends EventEmitter {
           this.emit('ready', { ip, port });
         })
         .on('request', this.requestHandler.bind(this))
+        .on('connect', this.connectHandler.bind(this))
         .on('error', (err) => {
           this.emit('error', err);
         })
@@ -85,6 +87,26 @@ class LProxy extends EventEmitter {
       });
     req = await this.beforeSendRequest(requestId, req);
     req.pipe(proxyReq);
+  }
+
+  private async connectHandler(req: IncomingMessage, sock: net.Socket) {
+    const urlObj = url.parse('http://' + req.url as string);
+    // tslint:disable-next-line:no-console
+    console.log(`connect: ${urlObj.hostname}: ${urlObj.port}`);
+    const proxySock = net.connect(
+      parseInt(urlObj.port!, 10),
+      urlObj.hostname!,
+      () => {
+        sock.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+        proxySock.pipe(sock);
+      }
+    );
+    proxySock.on('error', (err) => {
+      // tslint:disable-next-line:no-console
+      console.log(`error: ${err.message}`);
+      sock.end();
+    });
+    sock.pipe(proxySock);
   }
 
   private getRequestId() {
