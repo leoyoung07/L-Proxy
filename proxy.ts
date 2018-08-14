@@ -11,6 +11,7 @@ import url from 'url';
 // tslint:disable-next-line:interface-name
 declare interface LProxy {
   on(event: 'ready', listener: (state: IEndPoint) => void): this;
+  on(event: 'connect', listener: (req: IncomingMessage) => void): this;
   on(event: 'error', listener: (error: Error) => void): this;
   on(event: 'close', listener: () => void): this;
 }
@@ -90,9 +91,8 @@ class LProxy extends EventEmitter {
   }
 
   private async connectHandler(req: IncomingMessage, sock: net.Socket) {
+    this.emit('connect', req);
     const urlObj = url.parse('http://' + req.url as string);
-    // tslint:disable-next-line:no-console
-    console.log(`connect: ${urlObj.hostname}: ${urlObj.port}`);
     const proxySock = net.connect(
       parseInt(urlObj.port!, 10),
       urlObj.hostname!,

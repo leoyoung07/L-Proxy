@@ -22,4 +22,8 @@ proxy.on('ready', (state) => {
   // tslint:disable-next-line:no-console
   console.log(`proxy server is listening at ${ip}:${port}`);
 });
+proxy.on('connect', (req) => {
+    // tslint:disable-next-line:no-console
+    console.log(`connect: ${req.url}`);
+});
 proxy.start();
