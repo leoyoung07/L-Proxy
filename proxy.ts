@@ -21,10 +21,14 @@ interface IEndPoint {
   port: number;
 }
 
+type Middleware = () => void;
+
 class LProxy extends EventEmitter {
   private requestId = 0;
 
   private server: Server | null = null;
+
+  private middleware: Middleware[] = [];
 
   constructor(
     private options: { ip: string; port: number },
@@ -32,6 +36,14 @@ class LProxy extends EventEmitter {
     private beforeSendResponse = async (id: string, res: IncomingMessage) => res
   ) {
     super();
+  }
+
+  /**
+   * use
+   */
+  public use(fn: () => void) {
+    this.middleware.push(fn);
+    return this;
   }
 
   /**
