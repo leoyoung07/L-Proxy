@@ -1,4 +1,4 @@
-import { IncomingMessage } from 'http';
+import { IncomingMessage, ServerResponse } from 'http';
 import LProxy from '../proxy';
 
 const beforeSendRequest = async (requestId: string, req: IncomingMessage) => {
@@ -6,9 +6,9 @@ const beforeSendRequest = async (requestId: string, req: IncomingMessage) => {
   console.log('........req:' + requestId + '\n' + JSON.stringify(req.headers));
   return req;
 };
-const beforeSendResponse = async (requestId: string, res: IncomingMessage) => {
+const beforeSendResponse = async (requestId: string, res: ServerResponse) => {
   // tslint:disable-next-line:no-console
-  console.log('........res:' + requestId + '\n' + JSON.stringify(res.headers));
+  console.log('........res:' + requestId + '\n' + JSON.stringify(res.getHeaders()));
   return res;
 };
 

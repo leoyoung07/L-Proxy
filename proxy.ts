@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import http, {
+  ClientRequest,
   IncomingMessage,
   RequestOptions,
   Server,
@@ -12,7 +13,6 @@ import url from 'url';
 type Middleware = () => void;
 
 class LProxy extends EventEmitter {
-
   private counter = 0;
   private requestId: string;
 
@@ -22,6 +22,8 @@ class LProxy extends EventEmitter {
 
   private server: Server | null;
 
+  private proxyRes: IncomingMessage | null;
+
   constructor(
     private options: { ip: string; port: number },
     private beforeSendRequest = async (id: string, req: IncomingMessage) => req,
@@ -30,6 +32,7 @@ class LProxy extends EventEmitter {
     super();
     this.app = null;
     this.server = null;
+    this.proxyRes = null;
     this.requestId = '';
   }
 
@@ -53,21 +56,39 @@ class LProxy extends EventEmitter {
         await this.beforeSendRequest(this.requestId, ctx.req);
         await next();
       });
-      // 调用 requestHandler 中间件 转发请求
+      // 转发请求
       this.app.use(async (ctx, next) => {
         // 发送修改后的请求到服务器
         // 收到服务器响应
-        await this.requestHandler(ctx.req, ctx.res);
-        await next();
+        const urlObj = url.parse(ctx.req.url as string);
+        const options: RequestOptions = {
+          hostname: urlObj.hostname,
+          port: urlObj.port || 80,
+          path: urlObj.path,
+          method: ctx.req.method,
+          headers: ctx.req.headers
+        };
+        const proxyReq = http
+          .request(options, async (proxyRes: IncomingMessage) => {
+            this.proxyRes = proxyRes;
+            await next();
+          })
+          .on('error', () => {
+            ctx.res.end();
+          });
+        ctx.req.pipe(proxyReq);
       });
       // 收到响应 修改响应
       this.app.use(async (ctx, next) => {
         await this.beforeSendResponse(this.getNextRequestId(), ctx.res);
         await next();
       });
-      // 调用responseHandler 中间件 返回响应
+      // 返回响应
       this.app.use(async (ctx, next) => {
-        await this.responseHandler(ctx.req, ctx.res);
+        if (this.proxyRes) {
+          ctx.res.writeHead(this.proxyRes.statusCode as number, this.proxyRes.headers);
+          this.proxyRes.pipe(ctx.res);
+        }
       });
 
       this.server = this.app.listen(this.options.port, this.options.ip);
@@ -83,33 +104,6 @@ class LProxy extends EventEmitter {
       this.server = null;
       this.app = null;
     }
-  }
-
-  private async requestHandler(req: IncomingMessage, res: ServerResponse) {
-    // const requestId = this.getRequestId();
-    // const urlObj = url.parse(req.url as string);
-    // const options: RequestOptions = {
-    //   hostname: urlObj.hostname,
-    //   port: urlObj.port || 80,
-    //   path: urlObj.path,
-    //   method: req.method,
-    //   headers: req.headers
-    // };
-    // const proxyReq = http
-    //   .request(options, async (proxyRes: IncomingMessage) => {
-    //     proxyRes = await this.beforeSendResponse(requestId, proxyRes);
-    //     res.writeHead(proxyRes.statusCode as number, proxyRes.headers);
-    //     proxyRes.pipe(res);
-    //   })
-    //   .on('error', () => {
-    //     res.end();
-    //   });
-    // req = await this.beforeSendRequest(requestId, req);
-    // req.pipe(proxyReq);
-  }
-
-  private responseHandler(req: IncomingMessage, res: ServerResponse) {
-    //
   }
 
   private async connectHandler(req: IncomingMessage, sock: net.Socket) {
