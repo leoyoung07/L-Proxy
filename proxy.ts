@@ -53,41 +53,41 @@ class LProxy extends EventEmitter {
       // 收到请求 修改请求
       this.app.use(async (ctx, next) => {
         this.requestId = this.getNextRequestId();
-        // await this.beforeSendRequest(this.requestId, ctx.req);
+        await this.beforeSendRequest(this.requestId, ctx.req);
         await next();
       });
       // 转发请求
       this.app.use(async (ctx, next) => {
         // 发送修改后的请求到服务器
         // 收到服务器响应
-        // const urlObj = url.parse(ctx.req.url as string);
-        // const options: RequestOptions = {
-        //   hostname: urlObj.hostname,
-        //   port: urlObj.port || 80,
-        //   path: urlObj.path,
-        //   method: ctx.req.method,
-        //   headers: ctx.req.headers
-        // };
-        // const proxyReq = http
-        //   .request(options, async (proxyRes: IncomingMessage) => {
-        //     this.proxyRes = proxyRes;
-        //     await next();
-        //   });
-        // ctx.req.pipe(proxyReq);
+        const urlObj = url.parse(ctx.req.url as string);
+        const options: RequestOptions = {
+          hostname: urlObj.hostname,
+          port: urlObj.port || 80,
+          path: urlObj.path,
+          method: ctx.req.method,
+          headers: ctx.req.headers
+        };
+        await new Promise((resolve, reject) => {
+          const proxyReq = http
+            .request(options, async (proxyRes: IncomingMessage) => {
+              this.proxyRes = proxyRes;
+              await next();
+            });
+          ctx.req.pipe(proxyReq);
+        });
       });
       // 收到响应 修改响应
       this.app.use(async (ctx, next) => {
-        // await this.beforeSendResponse(this.getNextRequestId(), ctx.res);
+        await this.beforeSendResponse(this.getNextRequestId(), ctx.res);
         await next();
       });
       // 返回响应
       this.app.use(async (ctx, next) => {
-        // if (this.proxyRes) {
-          // ctx.res.writeHead(this.proxyRes.statusCode as number, this.proxyRes.headers);
-          // this.proxyRes.pipe(ctx.res);
-          ctx.response.status = 200;
-          ctx.response.body = 'hello';
-        // }
+        if (this.proxyRes) {
+          ctx.res.writeHead(this.proxyRes.statusCode as number, this.proxyRes.headers);
+          this.proxyRes.pipe(ctx.res);
+        }
       });
 
       this.app.on('error', (e: Error) => {
