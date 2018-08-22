@@ -75,6 +75,10 @@ class LProxy extends EventEmitter {
               await next();
             });
           ctx.req.pipe(proxyReq);
+          proxyReq.on('error', (e) => {
+            // tslint:disable-next-line:no-console
+            console.error(`请求遇到问题: ${e.message}`);
+          });
         });
       });
       // 收到响应 修改响应
