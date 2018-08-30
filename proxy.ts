@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
 import http, {
-  ClientRequest,
   IncomingMessage,
   RequestOptions,
   Server,
